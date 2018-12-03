@@ -3,7 +3,7 @@ const canvas = container.appendChild(createWorld(container));
 
 const context = canvas.getContext('2d');
 
-const moveables = randomMoveables(200);
+const moveables = randomMoveables(1000);
 setupScene(context, moveables);
 
 function createWorld(container) {
