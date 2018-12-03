@@ -1,34 +1,39 @@
 onmessage = function (e) {
-  const points = e.data;
+  const moveables = e.data;
   const factor = 24;
-  const groupX = groupBy(points, 'x', factor);
-  const groupY = groupBy(points, 'y', factor);
+
+  const clusters = groupByAxis(moveables, factor);
 
   postMessage(
-    points
-      .map(point =>
+    moveables
+      .map(moveable =>
         [
-          point,
+          moveable,
           intersect(
-            areaSearch(point.x, factor)
-              .reduce((group, index) => getGroup(groupX, index).concat(group), []),
-            areaSearch(point.y, factor)
-              .reduce((group, index) => getGroup(groupY, index).concat(group), []),
-          ).filter(neighbour => neighbour !== point)
+            areaSearch(moveable.coordinate.x, factor)
+              .reduce((group, index) => getGroup(clusters.x, index).concat(group), []),
+            areaSearch(moveable.coordinate.y, factor)
+              .reduce((group, index) => getGroup(clusters.y, index).concat(group), []),
+          ).filter(neighbour => neighbour !== moveable)
         ])
-      .filter(([point, neighbours]) => neighbours.length > 0)
+      .filter(([moveable, neighbours]) => neighbours.length > 0)
   );
 };
 
-function groupBy(points, axis, factor) {
-  return points.reduce(
-    (result, point) => {
-      let index = areaIndex(point[axis], factor);
-      result[index] = (result[index] || []).concat([point]);
-      return result;
-    },
-    []);
+function groupByAxis(moveables, factor) {
+  return moveables
+    .reduce((cluster, moveable) => {
+      addToCluster(cluster, moveable, 'x');
+      addToCluster(cluster, moveable, 'y');
+      return cluster;
+    }, {x: {}, y: {}});
+
+  function addToCluster(cluster, moveable, axis) {
+    let index = areaIndex(moveable.coordinate[axis], factor);
+    cluster[axis][index] = (cluster[axis][index] || []).concat([moveable]);
+  }
 }
+
 
 function areaSearch(basis, factor) {
   const searchArea = factor >> 1;
@@ -48,7 +53,7 @@ function getGroup(neighbourHood, index) {
 }
 
 function intersect(set1, set2) {
-  return set1.filter(point => -1 !== set2.indexOf(point));
+  return set1.filter(value => -1 !== set2.indexOf(value));
 }
 
 function unique(value, index, self) {

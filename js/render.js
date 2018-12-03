@@ -8,13 +8,9 @@ function setupScene(context, moveables) {
   context.strokeStyle = 'red';
   neighbourWorker.onmessage = function (e) {
     const connections = e.data;
-    connections.forEach(([point, neighbours]) => {
-      renderConnections(
-        context,
-        point,
-        neighbours
-      );
-    });
+    connections.forEach(([moveable, neighbours]) => {
+      renderConnections(context, moveable.coordinate, neighbours.map(moveable => moveable.coordinate));
+    })
   };
 
   requestAnimationFrame(renderScene(context, moveables));
@@ -24,6 +20,7 @@ function renderScene(context, moveables) {
   document.querySelector('#fps-counter').innerHTML = Math.floor(1000 / (thisLoop - lastLoop));
   lastLoop = thisLoop;
   return () => {
+    neighbourWorker.postMessage(moveables);
     thisLoop = new Date();
     draw(
       context,
@@ -58,7 +55,6 @@ function boundMoveable(context, moveable) {
 function draw(context, points) {
   clear(context);
   points.forEach(point => renderPixel(context, blueDot, point));
-  neighbourWorker.postMessage(points);
 }
 
 function clear(context) {
