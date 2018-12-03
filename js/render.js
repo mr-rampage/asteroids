@@ -3,14 +3,12 @@ const blueDot = createPixelImage(6, 'blue');
 
 let thisLoop = new Date();
 let lastLoop;
+let connections;
 
 function setupScene(context, moveables) {
   context.strokeStyle = 'red';
   neighbourWorker.onmessage = function (e) {
-    const connections = e.data;
-    connections.forEach(([moveable, neighbours]) => {
-      renderConnections(context, moveable.coordinate, neighbours.map(moveable => moveable.coordinate));
-    })
+    connections = e.data;
   };
 
   requestAnimationFrame(renderScene(context, moveables));
@@ -26,6 +24,12 @@ function renderScene(context, moveables) {
       context,
       moveables.map(moveable => moveable.coordinate)
     );
+
+    if (connections) {
+      connections.forEach(([moveable, neighbours]) => {
+        renderConnections(context, moveable.coordinate, neighbours.map(moveable => moveable.coordinate));
+      })
+    }
     setTimeout(() => requestAnimationFrame(renderScene(context, calcNextFrame(context, moveables))), 8);
   };
 }
