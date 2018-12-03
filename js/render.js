@@ -20,24 +20,27 @@ function renderScene(context, moveables) {
   return () => {
     neighbourWorker.postMessage(moveables);
     thisLoop = new Date();
+
+    clear(context);
+
+    if (connections) {
+      connections.forEach(([moveable, neighbours]) => {
+        renderConnections(context, moveable.coordinate, neighbours.map(moveable => moveable.coordinate));
+      });
+    }
+
     draw(
       context,
       moveables.map(moveable => moveable.coordinate)
     );
 
-    if (connections) {
-      connections.forEach(([moveable, neighbours]) => {
-        renderConnections(context, moveable.coordinate, neighbours.map(moveable => moveable.coordinate));
-      })
-    }
     setTimeout(() => requestAnimationFrame(renderScene(context, calcNextFrame(context, moveables))), 8);
   };
 }
 
 function calcNextFrame(context, moveables) {
-  return moveables
-    .map(move)
-    .map(moveable => boundMoveable(context, moveable));
+  moveables.forEach(moveable => boundMoveable(context, mutableMove(moveable)));
+  return moveables;
 }
 
 function boundMoveable(context, moveable) {
@@ -57,7 +60,6 @@ function boundMoveable(context, moveable) {
 }
 
 function draw(context, points) {
-  clear(context);
   points.forEach(point => renderPixel(context, blueDot, point));
 }
 

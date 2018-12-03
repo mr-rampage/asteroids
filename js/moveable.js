@@ -6,6 +6,14 @@ function point(x, y) {
     return {x, y};
 }
 
+function mutableMove(moveable) {
+  const {coordinate, velocity, acceleration} = move(moveable);
+  moveable.coordinate = coordinate;
+  moveable.velocity = velocity;
+  moveable.acceleration = acceleration;
+  return moveable;
+}
+
 function move({coordinate, velocity, acceleration}) {
     return moveable(
         add(coordinate, velocity),
