@@ -17,6 +17,7 @@ function setupScene(context, moveables) {
 }
 
 function handleCollisions(collisions, moveables) {
+  console.info(moveables.length);
   if (collisionsUpdated === false) {
     const moveableMap = moveables.reduce((map, moveable) => {
       map[moveable.id] = moveable;
@@ -24,33 +25,34 @@ function handleCollisions(collisions, moveables) {
     },{});
 
     collisions
-      .map(([moveable, candidates]) => {
-        candidates
-          .filter(candidate => isColliding(moveable, candidate))
-          .forEach(candidate => {
-            moveable.velocity = collide(moveable, moveableMap[candidate.id]);
-          });
-        return moveable;
-      })
-      .forEach(moveable => {
-        moveables[moveable.id].velocity = moveable.velocity;
+      .reduce((results, [moveable, candidates]) => {
+        results.push([
+          moveable.id,
+          candidates
+            .filter(candidate => isColliding(moveable, candidate))
+            .map(candidate => collide(moveable, candidate))
+        ]);
+        return results;
+      }, [])
+      .forEach(([id, vectors]) => {
+        if (vectors.length) {
+          moveableMap[id].velocity = vectors.reduce((result, vector) =>
+            // fixme: shouldn't be normalized - separate velocity from vector
+            normalize(add(result, vector), point(0, 0)));
+        }
       });
 
     collisionsUpdated = true;
   }
 
   function isColliding(moveable1, moveable2) {
-    return distance(moveable1.coordinate, moveable2.coordinate) < 12;
+    return distance(moveable1.coordinate, moveable2.coordinate) < 6;
   }
 }
 
 function collide(moveable1, moveable2) {
   const normal = normalize(subtract(moveable1.velocity, moveable2.velocity));
-  const length1 = dot(moveable1.velocity, normal);
-  const length2 = dot(moveable2.velocity, normal);
-  const optimizedP = Math.max(length1 - length2, 0);
-
-  return subtract(moveable1.velocity, multiply(normal, point(optimizedP, optimizedP)));
+  return subtract(moveable1.velocity, normal);
 }
 
 function renderScene(context, moveables) {

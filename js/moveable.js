@@ -29,22 +29,15 @@ function subtract(point1, point2) {
   return point(point1.x - point2.x, point1.y - point2.y);
 }
 
-function randomUnitVector() {
-  return point(Math.random() * 2 - 1, Math.random() * 2 - 1);
-}
-
 function normalize(vector) {
-  function hypotenus(vector) {
-    return Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
-  }
-  const length = hypotenus(vector);
-  return point(vector.x / length, vector.y / length);
+  const length = distance(vector, point(0, 0));
+  return length ? point(vector.x / length, vector.y / length) : vector;
 }
 
 function dot(vector1, vector2) {
   return vector1.x * vector2.x + vector1.y * vector2.y;
 }
 
-function copyVector(vector) {
-  return point(vector.x, vector.y);
+function distance(point1, point2) {
+  return Math.sqrt(Math.pow(point1.x - point2.x, 2) + Math.pow(point1.y - point2.y, 2));
 }
