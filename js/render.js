@@ -4,14 +4,53 @@ const blueDot = createPixelImage(6, 'blue');
 let thisLoop = new Date();
 let lastLoop;
 let connections;
+let collisionsUpdated;
 
 function setupScene(context, moveables) {
   context.strokeStyle = 'red';
   neighbourWorker.onmessage = function (e) {
     connections = e.data;
+    collisionsUpdated = false;
   };
 
   requestAnimationFrame(renderScene(context, moveables));
+}
+
+function handleCollisions(collisions, moveables) {
+  if (collisionsUpdated === false) {
+    const moveableMap = moveables.reduce((map, moveable) => {
+      map[moveable.id] = moveable;
+      return map;
+    },{});
+
+    collisions
+      .map(([moveable, candidates]) => {
+        candidates
+          .filter(candidate => isColliding(moveable, candidate))
+          .forEach(candidate => {
+            moveable.velocity = collide(moveable, moveableMap[candidate.id]);
+          });
+        return moveable;
+      })
+      .forEach(moveable => {
+        moveables[moveable.id].velocity = moveable.velocity;
+      });
+
+    collisionsUpdated = true;
+  }
+
+  function isColliding(moveable1, moveable2) {
+    return distance(moveable1.coordinate, moveable2.coordinate) < 12;
+  }
+}
+
+function collide(moveable1, moveable2) {
+  const normal = normalize(subtract(moveable1.velocity, moveable2.velocity));
+  const length1 = dot(moveable1.velocity, normal);
+  const length2 = dot(moveable2.velocity, normal);
+  const optimizedP = Math.max(length1 - length2, 0);
+
+  return subtract(moveable1.velocity, multiply(normal, point(optimizedP, optimizedP)));
 }
 
 function renderScene(context, moveables) {
@@ -28,6 +67,7 @@ function renderScene(context, moveables) {
       connections.forEach(([moveable, neighbours]) => {
         renderConnections(context, moveable.coordinate, neighbours.map(moveable => moveable.coordinate));
       });
+      handleCollisions(connections, moveables);
     }
 
     draw(
@@ -35,7 +75,7 @@ function renderScene(context, moveables) {
       moveables.map(moveable => moveable.coordinate)
     );
 
-    requestAnimationFrame(renderScene(context, calcNextFrame(context, moveables)));
+    setTimeout(() => requestAnimationFrame(renderScene(context, calcNextFrame(context, moveables))), 8);
   };
 }
 

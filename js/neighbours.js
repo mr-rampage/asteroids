@@ -5,7 +5,6 @@ onmessage = function (e) {
 
   postMessage(
     moveables
-      .filter(moveable => !isStationary(moveable.velocity))
       .map(moveable =>
         [
           moveable,
@@ -44,10 +43,6 @@ function areaSearch({coordinate,}, axis, factor) {
     clusterIndex(basis, factor),
     clusterIndex(basis + searchArea, factor)
   ].filter(unique);
-}
-
-function isStationary(velocity) {
-  return (velocity.x === 0 && velocity.y === 0);
 }
 
 function clusterIndex(basis, factor) {
