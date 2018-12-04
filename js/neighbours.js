@@ -1,20 +1,15 @@
 onmessage = function (e) {
   const moveables = e.data;
   const factor = 24;
-
   const clusters = groupByAxis(moveables, factor);
 
   postMessage(
     moveables
+      .filter(moveable => !isStationary(moveable.velocity))
       .map(moveable =>
         [
           moveable,
-          intersect(
-            areaSearch(moveable.coordinate.x, factor)
-              .reduce((group, index) => getGroup(clusters.x, index).concat(group), []),
-            areaSearch(moveable.coordinate.y, factor)
-              .reduce((group, index) => getGroup(clusters.y, index).concat(group), []),
-          ).filter(neighbour => neighbour !== moveable)
+          findCollisionCandidates(moveable, clusters, factor)
         ])
       .filter(([moveable, neighbours]) => neighbours.length > 0)
   );
@@ -23,28 +18,39 @@ onmessage = function (e) {
 function groupByAxis(moveables, factor) {
   return moveables
     .reduce((cluster, moveable) => {
-      addToCluster(cluster, moveable, 'x');
-      addToCluster(cluster, moveable, 'y');
+      addToCluster(cluster.x, moveable, 'x');
+      addToCluster(cluster.y, moveable, 'y');
       return cluster;
-    }, {x: {}, y: {}});
+    }, {x: [], y: []});
 
   function addToCluster(cluster, moveable, axis) {
-    let index = areaIndex(moveable.coordinate[axis], factor);
-    cluster[axis][index] = (cluster[axis][index] || []).concat([moveable]);
+    let index = clusterIndex(moveable.coordinate[axis], factor);
+    cluster[index] = (cluster[index] || []).concat([moveable]);
   }
 }
 
+function findCollisionCandidates(moveable, cluster, factor) {
+  return intersect(
+    areaSearch(moveable, 'x', factor).reduce((group, index) => getGroup(cluster.x, index).concat(group), []),
+    areaSearch(moveable, 'y', factor).reduce((group, index) => getGroup(cluster.y, index).concat(group), []),
+  ).filter(neighbour => neighbour !== moveable)
+}
 
-function areaSearch(basis, factor) {
+function areaSearch({coordinate,}, axis, factor) {
   const searchArea = factor >> 1;
+  const basis = coordinate[axis];
   return [
-    areaIndex(basis - searchArea, factor),
-    areaIndex(basis, factor),
-    areaIndex(basis + searchArea, factor)
+    clusterIndex(basis - searchArea, factor),
+    clusterIndex(basis, factor),
+    clusterIndex(basis + searchArea, factor)
   ].filter(unique);
 }
 
-function areaIndex(basis, factor) {
+function isStationary(velocity) {
+  return (velocity.x === 0 && velocity.y === 0);
+}
+
+function clusterIndex(basis, factor) {
   return (basis / factor) >> 0;
 }
 

@@ -17,10 +17,11 @@ function setupScene(context, moveables) {
 function renderScene(context, moveables) {
   document.querySelector('#fps-counter').innerHTML = Math.floor(1000 / (thisLoop - lastLoop));
   lastLoop = thisLoop;
-  return () => {
-    neighbourWorker.postMessage(moveables);
-    thisLoop = new Date();
+  thisLoop = new Date();
 
+  neighbourWorker.postMessage(moveables);
+
+  return () => {
     clear(context);
 
     if (connections) {
@@ -34,13 +35,12 @@ function renderScene(context, moveables) {
       moveables.map(moveable => moveable.coordinate)
     );
 
-    setTimeout(() => requestAnimationFrame(renderScene(context, calcNextFrame(context, moveables))), 8);
+    requestAnimationFrame(renderScene(context, calcNextFrame(context, moveables)));
   };
 }
 
 function calcNextFrame(context, moveables) {
-  moveables.forEach(moveable => boundMoveable(context, mutableMove(moveable)));
-  return moveables;
+  return moveables.map(moveable => boundMoveable(context, move(moveable)));
 }
 
 function boundMoveable(context, moveable) {
