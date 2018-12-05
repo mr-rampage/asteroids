@@ -1,10 +1,11 @@
 const neighbourWorker = new Worker('js/neighbours.js');
-const blueDot = createPixelImage(6, 'blue');
 
 let thisLoop = new Date();
 let lastLoop;
 let connections;
 let collisionsUpdated;
+
+const assets = [];
 
 function setupScene(context, moveables) {
   context.strokeStyle = 'red';
@@ -13,11 +14,14 @@ function setupScene(context, moveables) {
     collisionsUpdated = false;
   };
 
+  for (let i = 0; i < moveables.length; i++) {
+    assets.push(createPixelImage(6, randomColour()));
+  }
+
   requestAnimationFrame(renderScene(context, moveables));
 }
 
 function handleCollisions(collisions, moveables) {
-  console.info(moveables.length);
   if (collisionsUpdated === false) {
     const moveableMap = moveables.reduce((map, moveable) => {
       map[moveable.id] = moveable;
@@ -101,7 +105,7 @@ function boundMoveable(context, moveable) {
 }
 
 function draw(context, points) {
-  points.forEach(point => renderPixel(context, blueDot, point));
+  points.forEach((point, index) => renderPixel(context, assets[index], point));
 }
 
 function clear(context) {
