@@ -2,60 +2,28 @@ const neighbourWorker = new Worker('js/neighbours.js');
 
 let thisLoop = new Date();
 let lastLoop;
-let connections;
-let collisionsUpdated;
 
 const assets = [];
 
 function setupScene(context, moveables) {
-  context.strokeStyle = 'red';
   neighbourWorker.onmessage = function (e) {
-    connections = e.data;
-    collisionsUpdated = false;
+    updateVelocity(
+      moveables.reduce((map, moveable) => {
+        map[moveable.id] = moveable;
+        return map;
+      }, {}),
+      e.data
+    );
+    requestAnimationFrame(renderScene(context, calcNextFrame(context, moveables)));
   };
 
   for (let i = 0; i < moveables.length; i++) {
     assets.push(createPixelImage(6, randomColour()));
   }
 
+  setInterval(() => neighbourWorker.postMessage(moveables), 16);
+
   requestAnimationFrame(renderScene(context, moveables));
-}
-
-function handleCollisions(collisions, moveables) {
-  if (collisionsUpdated === false) {
-    const moveableMap = moveables.reduce((map, moveable) => {
-      map[moveable.id] = moveable;
-      return map;
-    }, {});
-
-    collisions
-      .reduce((results, [moveable, candidates]) => {
-        results.push([
-          moveable.id,
-          candidates
-            .filter(candidate => isColliding(moveable, candidate))
-            .map(candidate => collide(moveable, candidate))
-        ]);
-        return results;
-      }, [])
-      .filter(([id, vectors]) => vectors.length > 0)
-      .forEach(([id, vectors]) => {
-        moveableMap[id].velocity = normalize(vectors.reduce((result, vector) =>
-          // fixme: shouldn't be normalized - separate velocity from vector
-          add(result, vector), point(0, 0)));
-      });
-
-    collisionsUpdated = true;
-  }
-
-  function isColliding(moveable1, moveable2) {
-    return distance(moveable1.coordinate, moveable2.coordinate) < 6;
-  }
-}
-
-function collide(moveable1, moveable2) {
-  const normal = normalize(subtract(moveable1.velocity, moveable2.velocity));
-  return subtract(moveable1.velocity, normal);
 }
 
 function renderScene(context, moveables) {
@@ -63,29 +31,24 @@ function renderScene(context, moveables) {
   lastLoop = thisLoop;
   thisLoop = new Date();
 
-  neighbourWorker.postMessage(moveables);
-
   return () => {
     clear(context);
-
-    if (connections) {
-      connections.forEach(([moveable, neighbours]) => {
-        renderConnections(context, moveable.coordinate, neighbours.map(moveable => moveable.coordinate));
-      });
-      handleCollisions(connections, moveables);
-    }
-
     draw(
       context,
       moveables.map(moveable => moveable.coordinate)
     );
-
-    setTimeout(() => requestAnimationFrame(renderScene(context, calcNextFrame(context, moveables))), 8);
   };
 }
 
+function updateVelocity(moveableMap, collisions) {
+  collisions.forEach(([id, moveable]) => {
+    moveableMap[id].velocity = moveable.velocity;
+  });
+}
+
 function calcNextFrame(context, moveables) {
-  return moveables.map(moveable => boundMoveable(context, move(moveable)));
+  moveables.forEach(moveable => boundMoveable(context, mutableMove(moveable)));
+  return moveables;
 }
 
 function boundMoveable(context, moveable) {
@@ -112,32 +75,21 @@ function clear(context) {
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 }
 
-function renderConnections(context, root, points) {
-  points.forEach(point => {
-    renderLine(context, root, point)
-  });
-}
-
 function renderPixel(context, image, coordinate) {
   const center = point(coordinate.x - (image.width >> 1), coordinate.y - (image.height >> 1));
   context.drawImage(image, center.x, center.y);
 }
 
-function renderLine(context, source, destination) {
-  context.beginPath();
-  context.moveTo(source.x, source.y);
-  context.lineTo(destination.x, destination.y);
-  context.stroke();
-}
-
 function createPixelImage(size, colour) {
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = size << 1;
+  canvas.height = size << 1;
 
   const context = canvas.getContext("2d");
   context.fillStyle = colour;
-  context.fillRect(0, 0, size, size);
+  context.beginPath();
+  context.arc(size, size, size, 0, 2 * Math.PI, true);
+  context.fill();
 
   return canvas;
 }

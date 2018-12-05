@@ -1,5 +1,6 @@
-onmessage = function (e) {
-  const moveables = e.data;
+importScripts('moveable.js');
+
+onmessage = function ({data: moveables}) {
   const factor = 24;
   const clusters = groupByAxis(moveables, factor);
 
@@ -11,6 +12,8 @@ onmessage = function (e) {
           findCollisionCandidates(moveable, clusters, factor)
         ])
       .filter(([moveable, neighbours]) => neighbours.length > 0)
+      .map(handleCollisions.bind(null, factor))
+      .filter(vectorUpdates => vectorUpdates.length)
   );
 };
 
@@ -36,7 +39,7 @@ function findCollisionCandidates(moveable, cluster, factor) {
 }
 
 function areaSearch({coordinate,}, axis, factor) {
-  const searchArea = factor >> 1;
+  const searchArea = factor * 0.75;
   const basis = coordinate[axis];
   return [
     clusterIndex(basis - searchArea, factor),
@@ -59,4 +62,38 @@ function intersect(set1, set2) {
 
 function unique(value, index, self) {
   return self.indexOf(value) === index;
+}
+
+function isCollision(moveable1, moveable2, factor) {
+  return distance(moveable1.coordinate, moveable2.coordinate) < factor >> 1;
+}
+
+function handleCollisions(factor, [target, neighbours]) {
+  const newVector = resultingVector(
+    target,
+    neighbours.filter(neighbour => isCollision(target, neighbour, factor))
+  );
+
+  return newVector ?
+    [
+      target.id,
+      moveable(
+        target.coordinate,
+        multiply(newVector, isStationary(target.velocity) ? 1 : distance(target.velocity)),
+        target.acceleration
+      )
+    ] :
+    [
+    ];
+}
+
+function resultingVector(target, vectors) {
+  const result = vectors.map(neighbour => collide(target, neighbour));
+  return result.length ?
+    normalize(result.reduce((result, vector) => add(result, vector))) :
+    null;
+}
+
+function collide(moveable1, moveable2) {
+  return moveable2.velocity;
 }

@@ -3,8 +3,7 @@ const canvas = container.appendChild(createWorld(container));
 
 const context = canvas.getContext('2d');
 
-const moveables = randomMoveables(200);
-setupScene(context, moveables);
+setupScene(context, randomMoveables(100));
 
 function createWorld(container) {
   const width = document.createAttribute('width');

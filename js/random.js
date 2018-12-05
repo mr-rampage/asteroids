@@ -7,7 +7,7 @@ function randomMoveables(numberOfMoveables) {
     .fill(null)
     .map(() => moveable(
       randomPoint(container.offsetWidth, container.offsetHeight),
-      point(randomInt(-5, 5), randomInt(-5, 5)),
+      point(randomInt(-4, 4), randomInt(-4, 4)),
       point(0, 0)
     ));
 }
@@ -17,5 +17,5 @@ function randomPoint(x, y) {
 }
 
 function randomInt(min, max) {
-  return Math.floor((max - min) * Math.random()) + min;
+  return (((max - min) * Math.random()) >> 0) + min;
 }
