@@ -22,7 +22,7 @@ function handleCollisions(collisions, moveables) {
     const moveableMap = moveables.reduce((map, moveable) => {
       map[moveable.id] = moveable;
       return map;
-    },{});
+    }, {});
 
     collisions
       .reduce((results, [moveable, candidates]) => {
@@ -34,12 +34,11 @@ function handleCollisions(collisions, moveables) {
         ]);
         return results;
       }, [])
+      .filter(([id, vectors]) => vectors.length > 0)
       .forEach(([id, vectors]) => {
-        if (vectors.length) {
-          moveableMap[id].velocity = vectors.reduce((result, vector) =>
-            // fixme: shouldn't be normalized - separate velocity from vector
-            normalize(add(result, vector), point(0, 0)));
-        }
+        moveableMap[id].velocity = normalize(vectors.reduce((result, vector) =>
+          // fixme: shouldn't be normalized - separate velocity from vector
+          add(result, vector), point(0, 0)));
       });
 
     collisionsUpdated = true;
